@@ -27,19 +27,19 @@ namespace mapJ
             _hexRadius = GetHexRadius(_hexSize);
             _hexGap = GetHexGap(_hexSize);
         }
-        #region MyRegion
+        #region GetHexRadius
         private double GetHexRadius(double size)
         {
             return size / 2;
         }
         #endregion
-        #region MyRegion
+        #region GetHexGap
         private double GetHexGap(double size)
         {
             return size / 4;
         }
         #endregion
-        #region MyRegion
+        #region GenerateMapChips
         public void GenerateMapChips(string[] mapChipFiles)
         {
             foreach (var file in mapChipFiles)
@@ -58,7 +58,12 @@ namespace mapJ
         }
         #endregion
 
-        public void GenerateHexMap(int rowCount, int colCount)
+        /// <summary>
+        /// 現時点では内側のヘックスの線を消していない
+        /// </summary>
+        /// <param name="rowCount"></param>
+        /// <param name="colCount"></param>
+        public void GenerateHexMap(int rowCount, int colCount, bool includeInnerHexLine)
         {
             double hexHeight = GetHexHeight(_hexRadius);
             double hexWidth = GetHexWidth(_hexRadius);
@@ -124,13 +129,13 @@ namespace mapJ
                 return new System.Windows.Point(absX, absY);
             }
         }
-        #region MyRegion
+        #region GetHexHeight
         private double GetHexHeight(double radius)
         {
             return Math.Sqrt(3) * radius;
         }
         #endregion
-        #region MyRegion
+        #region GetHexWidth
         private double GetHexWidth(double radius)
         {
             return 2 * radius;
@@ -140,7 +145,7 @@ namespace mapJ
         public void GenerateFantasyMap(string[] mapChipFiles, int minLineCount, int maxLineCount)
         {
             // 六角形のマスを描画する
-            GenerateHexMap(minLineCount, maxLineCount);
+            GenerateHexMap(minLineCount, maxLineCount, true);
 
             // マップチップを配置する
             GenerateMapChips(mapChipFiles);
