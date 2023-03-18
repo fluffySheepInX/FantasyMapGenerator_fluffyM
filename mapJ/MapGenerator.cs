@@ -59,10 +59,11 @@ namespace mapJ
         #endregion
 
         /// <summary>
-        /// 現時点では内側のヘックスの線を消していない
+        /// 後は外側のヘックスの線を海岸線のようにし、凹みを作れば完成？
         /// </summary>
         /// <param name="rowCount"></param>
         /// <param name="colCount"></param>
+        /// <param name="includeInnerHexLine">True=内側のヘックスの線を消す</param>
         public void GenerateHexMap(int rowCount, int colCount, bool includeInnerHexLine)
         {
             double hexHeight = GetHexHeight(_hexRadius);
@@ -99,7 +100,14 @@ namespace mapJ
                     geometry.Figures.Add(figure);
                     path.Data = geometry;
 
-                    _canvas.Children.Add(path);
+                    if (includeInnerHexLine == true
+                        && ((row == 0 || row == rowCount - 1) || (col == 0 || col == colCount - 1)))
+                    {
+                        _canvas.Children.Add(path);
+                    }
+                    else
+                    {
+                    }
                 }
             }
         }
