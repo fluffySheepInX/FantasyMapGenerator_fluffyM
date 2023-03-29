@@ -1,162 +1,76 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Drawing;
+using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace mapJ
 {
-    public class MapGenerator
+    public partial class MainWindow : Window
     {
-        private double _hexSize;
-        private double _hexRadius;
-        private double _hexGap;
-        private readonly Canvas _canvas;
-        private readonly Random _random;
+        private const int MapWidth = 50;
+        private const int MapHeight = 50;
+        private const int MaxHeight = 10;
+        private const int MinHeight = 1;
+        private const int BorderHeight = 2;
+        private const int NumLakes = 5;
+        private const int NumHills = 20;
+        private const int HillHeight = 3;
 
-        public MapGenerator(Canvas canvas, double hexSize)
+        private int[,] _map = new int[MapWidth, MapHeight];
+
+
+        private void DrawMap()
         {
-            _canvas = canvas;
-            _hexSize = hexSize;
-            _random = new Random();
-            _hexRadius = GetHexRadius(_hexSize);
-            _hexGap = GetHexGap(_hexSize);
-        }
-        #region GetHexRadius
-        private double GetHexRadius(double size)
-        {
-            return size / 2;
-        }
-        #endregion
-        #region GetHexGap
-        private double GetHexGap(double size)
-        {
-            return size / 4;
-        }
-        #endregion
-        #region GenerateMapChips
-        public void GenerateMapChips(string[] mapChipFiles)
-        {
-            foreach (var file in mapChipFiles)
+            // キャンバスをクリア
+            mapCanvas.Children.Clear();
+
+            // マップを描画
+            double hexSize = 10;
+            double hexWidth = hexSize * Math.Sqrt(3);
+            double hexHeight = hexSize * 2;
+
+            for (int x = 0; x < MapWidth; x++)
             {
-                var bitmap = new BitmapImage(new Uri("pack://application:,,,/Resources/" + file, UriKind.Absolute));
-                var image = new Image { Source = bitmap, Height = 32, Width = 32 };
-
-                // ランダムな座標に画像を配置する
-                var x = _random.Next((int)_canvas.ActualWidth - (int)image.Width);
-                var y = _random.Next((int)_canvas.ActualHeight - (int)image.Height);
-                Canvas.SetLeft(image, x);
-                Canvas.SetTop(image, y);
-
-                _canvas.Children.Add(image);
-            }
-        }
-        #endregion
-
-        /// <summary>
-        /// 後は外側のヘックスの線を海岸線のようにし、凹みを作れば完成？
-        /// </summary>
-        /// <param name="rowCount"></param>
-        /// <param name="colCount"></param>
-        /// <param name="includeInnerHexLine">True=内側のヘックスの線を消す</param>
-        public void GenerateHexMap(int rowCount, int colCount, bool includeInnerHexLine)
-        {
-            double hexHeight = GetHexHeight(_hexRadius);
-            double hexWidth = GetHexWidth(_hexRadius);
-
-            Hexagon hexagon = new Hexagon(_hexRadius);
-
-            for (int row = 0; row < rowCount; row++)
-            {
-                for (int col = 0; col < colCount; col++)
+                for (int y = 0; y < MapHeight; y++)
                 {
-                    double x = col * hexWidth * 3 / 4;
-                    double y = row * (hexHeight + _hexGap);
-                    if (col % 2 == 1)
-                    {
-                        y += hexHeight / 2 + _hexGap / 2;
-                    }
+                    double cx = hexWidth * x + ((y % 2 == 1) ? hexWidth / 2 : 0);
+                    double cy = hexHeight * y * 0.75;
+                    double height = _map[x, y];
+                    Color color = GetColor((int)height);
 
-                    var path = new Path
-                    {
-                        Stroke = Brushes.Black,
-                        StrokeThickness = 1
-                    };
-
-                    var geometry = new PathGeometry();
-                    var figure = new PathFigure
-                    {
-                        StartPoint = hexagon.GetPoint(0, x, y)
-                    };
+                    Polygon hexagon = new Polygon();
+                    hexagon.Points.Add(new Point(cx + hexSize * Math.Cos(0), cy + hexSize * Math.Sin(0)));
                     for (int i = 1; i <= 6; i++)
                     {
-                        figure.Segments.Add(new LineSegment(hexagon.GetPoint(i, x, y), true));
+                        double angle = i * Math.PI / 3;
+                        hexagon.Points.Add(new Point(cx + hexSize * Math.Cos(angle), cy + hexSize * Math.Sin(angle)));
                     }
-                    geometry.Figures.Add(figure);
-                    path.Data = geometry;
-
-                    if (includeInnerHexLine == true
-                        && ((row == 0 || row == rowCount - 1) || (col == 0 || col == colCount - 1)))
-                    {
-                        _canvas.Children.Add(path);
-                    }
-                    else
-                    {
-                    }
+                    hexagon.Fill = new SolidColorBrush(color);
+                    hexagon.Stroke = Brushes.Black;
+                    mapCanvas.Children.Add(hexagon);
                 }
             }
         }
 
-        public class Hexagon
+        private Color GetColor(int height)
         {
-            private readonly double _radius;
-            private readonly double _height;
-            private readonly double _width;
-
-            public Hexagon(double radius)
+            if (height == 0)
             {
-                _radius = radius;
-                _height = 2 * radius;
-                _width = Math.Sqrt(3) * radius;
+                return Colors.Blue;
             }
-
-            public System.Windows.Point GetPoint(int index, double x, double y)
+            else if (height < BorderHeight)
             {
-                double angle = 2.0 * Math.PI / 6 * index;
-                double x1 = _radius * Math.Cos(angle);
-                double y1 = _radius * Math.Sin(angle);
-
-                double absX = x + _width / 2 + x1;
-                double absY = y + _height / 2 + y1;
-
-                return new System.Windows.Point(absX, absY);
+                return Colors.LightBlue;
             }
-        }
-        #region GetHexHeight
-        private double GetHexHeight(double radius)
-        {
-            return Math.Sqrt(3) * radius;
-        }
-        #endregion
-        #region GetHexWidth
-        private double GetHexWidth(double radius)
-        {
-            return 2 * radius;
-        }
-        #endregion
-
-        public void GenerateFantasyMap(string[] mapChipFiles, int minLineCount, int maxLineCount)
-        {
-            // 六角形のマスを描画する
-            GenerateHexMap(minLineCount, maxLineCount, true);
-
-            // マップチップを配置する
-            GenerateMapChips(mapChipFiles);
+            else if (height < MaxHeight - 1)
+            {
+                return Colors.Green;
+            }
+            else
+            {
+                return Colors.Gray;
+            }
         }
     }
 }

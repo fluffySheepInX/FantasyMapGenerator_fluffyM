@@ -20,82 +20,125 @@ namespace mapJ
     /// </summary>
     public partial class MainWindow : Window
     {
-        private MapGenerator _mapGenerator;
-        public int Scale { get; set; } = 0;
-
         public MainWindow()
         {
             InitializeComponent();
-            MapCanvas.MouseWheel += grdCanvas_MouseWheel;
-            _mapGenerator = new MapGenerator(MapCanvas, hexSize:60);
+
+            CreateWorld();
         }
 
-        private void grdCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        private void CreateWorld()
         {
-            if ((Keyboard.IsKeyDown(Key.LeftCtrl) == false) && (Keyboard.IsKeyDown(Key.RightCtrl) == false))
+            // すべてのヘックスを海に設定
+            for (int x = 0; x < MapWidth; x++)
             {
-                return;
-            }
-
-            ScaleTransform? scaleTransform = null;
-            if (MapCanvas.RenderTransform == null)
-            {
-                scaleTransform = new ScaleTransform();
-            }
-            else
-            {
-                var tran = MapCanvas.RenderTransform as ScaleTransform;
-                if (tran != null)
+                for (int y = 0; y < MapHeight; y++)
                 {
-                    scaleTransform = tran;
-                }
-                else
-                {
-                    scaleTransform = new ScaleTransform();
+                    _map[x, y] = 0;
                 }
             }
 
-            double scale = 0;
-            if (this.Scale > e.Delta)
+            // 大陸を生成
+            int startX = MapWidth / 2;
+            int startY = MapHeight / 2;
+            int currentHeight = MaxHeight;
+
+            while (currentHeight >= MinHeight)
             {
-                this.Scale = this.Scale - 1;
-                scale = scaleTransform.ScaleX - 0.1;
-            }
-            else if (this.Scale == e.Delta)
-            {
-                return;
-            }
-            else
-            {
-                this.Scale = this.Scale + 1;
-                scale = scaleTransform.ScaleX + 0.1;
+                // ランダムな方向に高さを下げる
+                int direction = new Random().Next(1, 7);
+                switch (direction)
+                {
+                    case 1: startX--; break;
+                    case 2: startY--; break;
+                    case 3: startX++; startY--; break;
+                    case 4: startX++; break;
+                    case 5: startY++; break;
+                    case 6: startX--; startY++; break;
+                }
+
+                // マップの範囲内に収める
+                startX = Math.Max(0, startX);
+                startX = Math.Min(MapWidth - 1, startX);
+                startY = Math.Max(0, startY);
+                startY = Math.Min(MapHeight - 1, startY);
+
+                // 高さを設定
+                _map[startX, startY] = currentHeight;
+
+                // 高さを下げる
+                currentHeight--;
+
+                // 一定の確率で高さを上げる
+                if (new Random().NextDouble() < 0.3)
+                {
+                    currentHeight = Math.Min(MaxHeight, currentHeight + 1);
+                }
             }
 
-            // 倍率を制限する（大きいとドラッグでバグることがあるけど、原因はよく分からず）
-            if (scale > 2.0)
+            // 大陸と海の境界線を作成
+            for (int x = 0; x < MapWidth; x++)
             {
-                scale = 2.0; // 最大 200%
+                for (int y = 0; y < MapHeight; y++)
+                {
+                    if (_map[x, y] == 0)
+                    {
+                        bool hasLandNeighbor = false;
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            for (int dy = -1; dy <= 1; dy++)
+                            {
+                                if (dx == 0 && dy == 0) continue;
+                                int nx = x + dx;
+                                int ny = y + dy;
+                                if (ny < 0 || ny >= MapHeight) continue;
+                                if (nx < 0 || nx >= MapWidth || ny < 0 || ny >= MapHeight) continue;
+                                if (_map[nx, ny] >= BorderHeight)
+                                {
+                                    hasLandNeighbor = true;
+                                    break;
+                                }
+                            }
+                            if (hasLandNeighbor)
+                            {
+                                _map[x, y] = BorderHeight;
+                            }
+                        }
+                    }
+                }
             }
-            if (scale < 0.1)
-            {
-                scale = 0.1; // 最小 50%
-            }
-            scaleTransform.ScaleX = scale;
-            scaleTransform.ScaleY = scale;
-            MapCanvas.RenderTransform = scaleTransform; ;
 
+            // 水域を追加
+            for (int i = 0; i < NumLakes; i++)
+            {
+                int lakeX = new Random().Next(1, MapWidth - 1);
+                int lakeY = new Random().Next(1, MapHeight - 1);
+                if (_map[lakeX, lakeY] >= BorderHeight)
+                {
+                    _map[lakeX, lakeY] = 0;
+                }
+            }
+
+            // 地形を詳細化
+            for (int i = 0; i < NumHills; i++)
+            {
+                int hillX = new Random().Next(1, MapWidth - 1);
+                int hillY = new Random().Next(1, MapHeight - 1);
+                if (_map[hillX, hillY] > BorderHeight)
+                {
+                    _map[hillX, hillY] += HillHeight;
+                }
+            }
+
+            // マップを表示
+            DrawMap();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            MapCanvas.Children.Clear();
+            mapCanvas.Children.Clear();
 
-            string[] mapChipFiles = { "10005.png", "10010.png", "10006.png" };
-
-            int minLineCount = 20;
-            int maxLineCount = 20;
-
-            _mapGenerator.GenerateFantasyMap(mapChipFiles, minLineCount, maxLineCount);
+            CreateWorld();
         }
     }
 }
