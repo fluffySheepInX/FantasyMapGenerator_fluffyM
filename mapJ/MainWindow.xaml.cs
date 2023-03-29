@@ -1,17 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace mapJ
 {
@@ -30,38 +18,38 @@ namespace mapJ
         private void CreateWorld()
         {
             // すべてのヘックスを海に設定
-            for (int x = 0; x < MapWidth; x++)
+            for (int x = 0; x < mapWidth; x++)
             {
-                for (int y = 0; y < MapHeight; y++)
+                for (int y = 0; y < mapHeight; y++)
                 {
                     _map[x, y] = 0;
                 }
             }
-
             // 大陸を生成
-            int startX = MapWidth / 2;
-            int startY = MapHeight / 2;
-            int currentHeight = MaxHeight;
+            int startX = mapWidth / 2; // 大陸の開始位置のx座標
+            int startY = mapHeight / 2; // 大陸の開始位置のy座標
+            int currentHeight = maxHeight; // 現在の高さ
 
             while (currentHeight >= MinHeight)
             {
                 // ランダムな方向に高さを下げる
+                //1から6までの整数をランダムに生成
                 int direction = new Random().Next(1, 7);
                 switch (direction)
                 {
-                    case 1: startX--; break;
-                    case 2: startY--; break;
-                    case 3: startX++; startY--; break;
-                    case 4: startX++; break;
-                    case 5: startY++; break;
-                    case 6: startX--; startY++; break;
+                    case 1: startX--; break;// 左
+                    case 2: startY--; break;// 上
+                    case 3: startX++; startY--; break;// 右上
+                    case 4: startX++; break;// 右
+                    case 5: startY++; break;// 下
+                    case 6: startX--; startY++; break;// 左下
                 }
 
                 // マップの範囲内に収める
-                startX = Math.Max(0, startX);
-                startX = Math.Min(MapWidth - 1, startX);
-                startY = Math.Max(0, startY);
-                startY = Math.Min(MapHeight - 1, startY);
+                startX = Math.Max(0, startX); // x座標が0未満にならないようにする
+                startX = Math.Min(mapWidth - 1, startX);// x座標がmapWidth未満になるようにする
+                startY = Math.Max(0, startY);// y座標が0未満にならないようにする
+                startY = Math.Min(mapHeight - 1, startY); // y座標がmapHeight未満になるようにする
 
                 // 高さを設定
                 _map[startX, startY] = currentHeight;
@@ -70,38 +58,40 @@ namespace mapJ
                 currentHeight--;
 
                 // 一定の確率で高さを上げる
-                if (new Random().NextDouble() < 0.3)
+                if (new Random().NextDouble() < 0.3)// 30%の確率で
                 {
-                    currentHeight = Math.Min(MaxHeight, currentHeight + 1);
+                    // 最大高さを超えないように高さを上げる
+                    currentHeight = Math.Min(maxHeight, currentHeight + 1);
                 }
             }
 
             // 大陸と海の境界線を作成
-            for (int x = 0; x < MapWidth; x++)
+            for (int x = 0; x < mapWidth; x++)
             {
-                for (int y = 0; y < MapHeight; y++)
+                for (int y = 0; y < mapHeight; y++)
                 {
-                    if (_map[x, y] == 0)
+                    if (_map[x, y] == 0)// 海の場合
                     {
                         bool hasLandNeighbor = false;
-                        for (int dx = -1; dx <= 1; dx++)
+                        for (int dx = -1; dx <= 1; dx++) // 8方向をチェック
                         {
                             for (int dy = -1; dy <= 1; dy++)
                             {
-                                if (dx == 0 && dy == 0) continue;
+                                if (dx == 0 && dy == 0) continue;// 自分自身はチェックしない
                                 int nx = x + dx;
                                 int ny = y + dy;
-                                if (ny < 0 || ny >= MapHeight) continue;
-                                if (nx < 0 || nx >= MapWidth || ny < 0 || ny >= MapHeight) continue;
-                                if (_map[nx, ny] >= BorderHeight)
+                                if (ny < 0 || ny >= mapHeight) continue;// マップの範囲外はチェックしない
+                                if (nx < 0 || nx >= mapWidth || ny < 0 || ny >= mapHeight) continue;
+                                if (_map[nx, ny] >= borderHeight)// 隣接するヘックスに大陸がある場合
                                 {
                                     hasLandNeighbor = true;
                                     break;
                                 }
                             }
+                            // 隣接するヘックスに大陸がある場合、境界線に設定する
                             if (hasLandNeighbor)
                             {
-                                _map[x, y] = BorderHeight;
+                                _map[x, y] = borderHeight;
                             }
                         }
                     }
@@ -109,24 +99,24 @@ namespace mapJ
             }
 
             // 水域を追加
-            for (int i = 0; i < NumLakes; i++)
+            for (int i = 0; i < numLakes; i++)
             {
-                int lakeX = new Random().Next(1, MapWidth - 1);
-                int lakeY = new Random().Next(1, MapHeight - 1);
-                if (_map[lakeX, lakeY] >= BorderHeight)
-                {
+                int lakeX = new Random().Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
+                int lakeY = new Random().Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
+                if (_map[lakeX, lakeY] >= borderHeight)
+                { // 大陸の上に水域を設定しないようにする
                     _map[lakeX, lakeY] = 0;
                 }
             }
 
             // 地形を詳細化
-            for (int i = 0; i < NumHills; i++)
+            for (int i = 0; i < numHills; i++)
             {
-                int hillX = new Random().Next(1, MapWidth - 1);
-                int hillY = new Random().Next(1, MapHeight - 1);
-                if (_map[hillX, hillY] > BorderHeight)
-                {
-                    _map[hillX, hillY] += HillHeight;
+                int hillX = new Random().Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
+                int hillY = new Random().Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
+                if (_map[hillX, hillY] > borderHeight)
+                { // 大陸の上に丘を設定する
+                    _map[hillX, hillY] += hillHeight; // 丘の高さを
                 }
             }
 

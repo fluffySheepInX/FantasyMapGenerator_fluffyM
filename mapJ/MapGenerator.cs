@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -8,16 +7,18 @@ namespace mapJ
 {
     public partial class MainWindow : Window
     {
-        private const int MapWidth = 50;
-        private const int MapHeight = 50;
-        private const int MaxHeight = 10;
-        private const int MinHeight = 1;
-        private const int BorderHeight = 2;
-        private const int NumLakes = 5;
-        private const int NumHills = 20;
-        private const int HillHeight = 3;
+        // マップのサイズやパラメータを定義
+        const int mapWidth = 50; // マップの横幅
+        const int mapHeight = 50; // マップの縦幅
+        const int maxHeight = 10; // 大陸の最大高さ
+        const int minHeight = 1; // 大陸の最小高さ
+        const int borderHeight = 2; // 大陸と海の境界の高さ
+        const int numLakes = 5; // 水域の数
+        const int numHills = 20; // 丘の数
+        const int hillHeight = 3; // 丘の高さ
 
-        private int[,] _map = new int[MapWidth, MapHeight];
+        // マップを格納する2次元配列を初期化
+        private int[,] _map = new int[mapWidth, mapHeight];
 
 
         private void DrawMap()
@@ -30,9 +31,9 @@ namespace mapJ
             double hexWidth = hexSize * Math.Sqrt(3);
             double hexHeight = hexSize * 2;
 
-            for (int x = 0; x < MapWidth; x++)
+            for (int x = 0; x < mapWidth; x++)
             {
-                for (int y = 0; y < MapHeight; y++)
+                for (int y = 0; y < mapHeight; y++)
                 {
                     double cx = hexWidth * x + ((y % 2 == 1) ? hexWidth / 2 : 0);
                     double cy = hexHeight * y * 0.75;
@@ -59,7 +60,7 @@ namespace mapJ
             {
                 return Colors.Blue;
             }
-            else if (height < BorderHeight)
+            else if (height < borderHeight)
             {
                 return Colors.LightBlue;
             }
