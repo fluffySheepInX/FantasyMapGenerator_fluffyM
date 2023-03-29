@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace mapJ
 {
@@ -8,6 +10,19 @@ namespace mapJ
     /// </summary>
     public partial class MainWindow : Window
     {
+        // マップのサイズやパラメータを定義
+        const int mapWidth = 50; // マップの横幅
+        const int mapHeight = 50; // マップの縦幅
+        const int maxHeight = 10; // 大陸の最大高さ
+        const int minHeight = 1; // 大陸の最小高さ
+        const int borderHeight = 2; // 大陸と海の境界の高さ
+        const int numLakes = 5; // 水域の数
+        const int numHills = 20; // 丘の数
+        const int hillHeight = 3; // 丘の高さ
+
+        // マップを格納する2次元配列を初期化
+        private int[,] _map = new int[mapWidth, mapHeight];
+
         public MainWindow()
         {
             InitializeComponent();
@@ -34,7 +49,7 @@ namespace mapJ
             {
                 // ランダムな方向に高さを下げる
                 //1から6までの整数をランダムに生成
-                int direction = new Random().Next(1, 7);
+                int direction = new Random(DateTime.Now.Millisecond).Next(1, 7);
                 switch (direction)
                 {
                     case 1: startX--; break;// 左
@@ -58,7 +73,7 @@ namespace mapJ
                 currentHeight--;
 
                 // 一定の確率で高さを上げる
-                if (new Random().NextDouble() < 0.3)// 30%の確率で
+                if (new Random(DateTime.Now.Millisecond).NextDouble() < 0.3)// 30%の確率で
                 {
                     // 最大高さを超えないように高さを上げる
                     currentHeight = Math.Min(maxHeight, currentHeight + 1);
@@ -101,8 +116,8 @@ namespace mapJ
             // 水域を追加
             for (int i = 0; i < numLakes; i++)
             {
-                int lakeX = new Random().Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
-                int lakeY = new Random().Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
+                int lakeX = new Random(DateTime.Now.Millisecond).Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
+                int lakeY = new Random(DateTime.Now.Millisecond).Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
                 if (_map[lakeX, lakeY] >= borderHeight)
                 { // 大陸の上に水域を設定しないようにする
                     _map[lakeX, lakeY] = 0;
@@ -112,8 +127,8 @@ namespace mapJ
             // 地形を詳細化
             for (int i = 0; i < numHills; i++)
             {
-                int hillX = new Random().Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
-                int hillY = new Random().Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
+                int hillX = new Random(DateTime.Now.Millisecond).Next(1, mapWidth - 1); // 1からmapWidth-1までのランダムなx座標
+                int hillY = new Random(DateTime.Now.Millisecond).Next(1, mapHeight - 1); // 1からmapHeight-1までのランダムなy座標
                 if (_map[hillX, hillY] > borderHeight)
                 { // 大陸の上に丘を設定する
                     _map[hillX, hillY] += hillHeight; // 丘の高さを
@@ -129,6 +144,59 @@ namespace mapJ
             mapCanvas.Children.Clear();
 
             CreateWorld();
+        }
+
+        private void DrawMap()
+        {
+            // キャンバスをクリア
+            mapCanvas.Children.Clear();
+
+            // マップを描画
+            double hexSize = 10;
+            double hexWidth = hexSize * Math.Sqrt(3);
+            double hexHeight = hexSize * 2;
+
+            for (int x = 0; x < mapWidth; x++)
+            {
+                for (int y = 0; y < mapHeight; y++)
+                {
+                    double cx = hexWidth * x + ((y % 2 == 1) ? hexWidth / 2 : 0);
+                    double cy = hexHeight * y * 0.75;
+                    double height = _map[x, y];
+                    Color color = GetColor((int)height);
+
+                    Polygon hexagon = new Polygon();
+                    hexagon.Points.Add(new Point(cx + hexSize * Math.Cos(0), cy + hexSize * Math.Sin(0)));
+                    for (int i = 1; i <= 6; i++)
+                    {
+                        double angle = i * Math.PI / 3;
+                        hexagon.Points.Add(new Point(cx + hexSize * Math.Cos(angle), cy + hexSize * Math.Sin(angle)));
+                    }
+                    hexagon.Fill = new SolidColorBrush(color);
+                    hexagon.Stroke = Brushes.Black;
+                    mapCanvas.Children.Add(hexagon);
+                }
+            }
+        }
+
+        private Color GetColor(int height)
+        {
+            if (height == 0)
+            {
+                return Colors.Blue;
+            }
+            else if (height < borderHeight)
+            {
+                return Colors.LightBlue;
+            }
+            else if (height < MaxHeight - 1)
+            {
+                return Colors.Green;
+            }
+            else
+            {
+                return Colors.Gray;
+            }
         }
     }
 }
